@@ -48,7 +48,8 @@ def main():
 
                     if len(playerClicks) == 2:
                         move = Move(playerClicks[0], playerClicks[1], gs.board)
-                        print(move.getChessNotation())
+                        print("Trying to make move:", move.getChessNotation())
+                        print("Valid moves this turn:", [m.getChessNotation() for m in validMoves])
                         if move in validMoves:
                             gs.makeMove(move)
                             moveMade = True

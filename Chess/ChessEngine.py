@@ -43,14 +43,22 @@ class GameState():
 
     def getValidMoves(self):
         moves = self.getAllPossibleMoves()
-        for i in range(len(moves)-1, -1, -1):
+        for i in range(len(moves) - 1, -1, -1):
+            print(f"Trying move: {moves[i].getChessNotation()}")
+            print("Before move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+            for row in self.board:
+                print(row)
             self.makeMove(moves[i])
-            oppMoves = self.getAllPossibleMoves()
-            self.whiteToMove = not self.whiteToMove
+            print("After move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+            for row in self.board:
+                print(row)
             if self.inCheck():
-                moves.remove(moves[i])
-            self.whiteToMove = not self.whiteToMove
+                print(f"REMOVING: {moves[i].getChessNotation()} because it leaves king in check")
+                moves.pop(i)
             self.undoMove()
+            print("After undo, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+            for row in self.board:
+                print(row)
         if len(moves) == 0:
             if self.inCheck():
                 self.checkMate = True
@@ -59,7 +67,7 @@ class GameState():
         else:
             self.checkMate = False
             self.staleMate = False
-                
+        print("VALID MOVES:", [m.getChessNotation() for m in moves])
         return moves
 
     def inCheck(self):
