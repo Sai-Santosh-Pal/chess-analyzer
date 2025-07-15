@@ -16,7 +16,6 @@ def drawGameState(screen,gs):
         drawBoard(screen)
         drawPieces(screen, gs.board)
 
-
 def main():
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
@@ -38,27 +37,23 @@ def main():
                 location = p.mouse.get_pos()
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
-                if 0 <= row < DIMENSION and 0 <= col < DIMENSION:
-                    if sqSelected == (row, col):
+                if sqSelected == (row, col):
+                    sqSelected = ()
+                    playerClicks = []
+                else:
+                    sqSelected = (row, col)
+                    playerClicks.append(sqSelected)
+
+                if len(playerClicks) == 2:
+                    move = Move(playerClicks[0], playerClicks[1], gs.board)
+                    print(move.getChessNotation())
+                    if move in validMoves:
+                        gs.makeMove(move)
+                        moveMade = True
                         sqSelected = ()
                         playerClicks = []
                     else:
-                        sqSelected = (row, col)
-                        playerClicks.append(sqSelected)
-
-                    if len(playerClicks) == 2:
-                        move = Move(playerClicks[0], playerClicks[1], gs.board)
-                        print("Trying to make move:", move.getChessNotation())
-                        print("Valid moves this turn:", [m.getChessNotation() for m in validMoves])
-                        if move in validMoves:
-                            gs.makeMove(move)
-                            moveMade = True
-                        # Always reset after two clicks, regardless of move validity
-                        sqSelected = ()
-                        playerClicks = []
-                else:
-                    sqSelected = ()
-                    playerClicks = []
+                        playerClicks = [sqSelected]
 
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z:

@@ -16,8 +16,6 @@ class GameState():
         self.moveLog = []
         self.whiteKingLocation = (7, 4)
         self.blackKingLocation = (0, 4)
-        self.checkMate = False
-        self.staleMate = False
 
     def makeMove(self, move):
         self.board[move.startRow][move.startCol] = "--"
@@ -44,31 +42,40 @@ class GameState():
     def getValidMoves(self):
         moves = self.getAllPossibleMoves()
         for i in range(len(moves) - 1, -1, -1):
-            print(f"Trying move: {moves[i].getChessNotation()}")
-            print("Before move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
-            for row in self.board:
-                print(row)
             self.makeMove(moves[i])
-            print("After move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
-            for row in self.board:
-                print(row)
+            oppMoves = self.getAllPossibleMoves()
+            self.whiteToMove = not self.whiteToMove
             if self.inCheck():
-                print(f"REMOVING: {moves[i].getChessNotation()} because it leaves king in check")
-                moves.pop(i)
+                moves.remove(moves[i])
+            self.whiteToMove = not self.whiteToMove
             self.undoMove()
-            print("After undo, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
-            for row in self.board:
-                print(row)
-        if len(moves) == 0:
-            if self.inCheck():
-                self.checkMate = True
-            else:
-                self.staleMate = True
-        else:
-            self.checkMate = False
-            self.staleMate = False
-        print("VALID MOVES:", [m.getChessNotation() for m in moves])
         return moves
+
+        #     print(f"Trying move: {moves[i].getChessNotation()}")
+        #     print("Before move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+        #     for row in self.board:
+        #         print(row)
+        #     self.makeMove(moves[i])
+        #     print("After move, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+        #     for row in self.board:
+        #         print(row)
+        #     if self.inCheck():
+        #         print(f"REMOVING: {moves[i].getChessNotation()} because it leaves king in check")
+        #         moves.pop(i)
+        #     self.undoMove()
+        #     print("After undo, white king at:", self.whiteKingLocation, "black king at:", self.blackKingLocation)
+        #     for row in self.board:
+        #         print(row)
+        # if len(moves) == 0:
+        #     if self.inCheck():
+        #         self.checkMate = True
+        #     else:
+        #         self.staleMate = True
+        # else:
+        #     self.checkMate = False
+        #     self.staleMate = False
+        # print("VALID MOVES:", [m.getChessNotation() for m in moves])
+        # return moves
 
     def inCheck(self):
         if self.whiteToMove:
@@ -82,54 +89,48 @@ class GameState():
         self.whiteToMove = not self.whiteToMove
         for move in oppMoves:
             if move.endRow == r and move.endCol == c:
-                self.whiteToMove = not self.whiteToMove
                 return True
         return False
 
-
-
     def getAllPossibleMoves(self):
-        moves = [Move((6,4), (4, 4), self.board)]
+        moves = []
         for r in range (len(self.board)):
             for c in range(len(self.board[r])):
-                if self.board[r][c] != "--":
+                turn = self.board[r][c][0]
+                if (turn == "w" and self.whiteToMove) or (turn == "b" and not self.whiteToMove):
                     piece = self.board[r][c][1]
-                    color = self.board[r][c][0]
-                    if piece == "p":
-                        self.getPawnMoves(r, c, moves, color)
-                    else:
-                        self.moveFunctions[piece](r, c, moves)
+                    self.moveFunctions[piece](r, c, moves)
         return moves
 
-    def getPawnMoves(self, r, c, moves, color):
-        if color == "w":
-            # White pawn forward moves
-            if r-1 >= 0 and self.board[r-1][c] == "--":
+    def getPawnMoves(self, r, c, moves):
+        if self.whiteToMove:
+            if self.board[r - 1][c] == "--":
                 moves.append(Move((r, c), (r-1, c), self.board))
-                if r == 6 and self.board[r-2][c] == "--":
+                if r == 6 and self.board[r - 2][c] == "--":
                     moves.append(Move((r, c), (r-2, c), self.board))
-            # White pawn captures
-            if r-1 >= 0 and c-1 >= 0 and self.board[r-1][c-1][0] == "b":
-                moves.append(Move((r, c), (r-1, c-1), self.board))
-            if r-1 >= 0 and c+1 <= 7 and self.board[r-1][c+1][0] == "b":
-                moves.append(Move((r, c), (r-1, c+1), self.board))
-        elif color == "b":
-            # Black pawn forward moves
-            if r+1 < 8 and self.board[r+1][c] == "--":
+            if c - 1 >= 0:
+                if self.board[r - 1][c - 1][0] == "b":
+                    moves.append(Move((r, c), (r-1, c-1), self.board))
+            if c + 1 <= 7:
+                if self.board[r - 1][c + 1][0] == "b":
+                    moves.append(Move((r, c), (r-1, c+1), self.board))
+        else:
+            if self.board[r+1][c] == "--":
                 moves.append(Move((r, c), (r+1, c), self.board))
-                if r == 1 and self.board[r+2][c] == "--":
-                    moves.append(Move((r, c), (r+2, c), self.board))
-            # Black pawn captures
-            if r+1 < 8 and c-1 >= 0 and self.board[r+1][c-1][0] == "w":
-                moves.append(Move((r, c), (r+1, c-1), self.board))
-            if r+1 < 8 and c+1 <= 7 and self.board[r+1][c+1][0] == "w":
-                moves.append(Move((r, c), (r+1, c+1), self.board))
+                if r == 1 and self.board[r + 2][c] == "--":
+                    moves.append(Move((r, c), (r + 2, c), self.board))
+            if c - 1 >= 0:
+                if self.board[r + 1][c - 1][0] == "w":
+                    moves.append(Move((r, c), (r + 1, c - 1), self.board))
+            if c + 1 <= 7:
+                if self.board[r + 1][c + 1][0] == "w":
+                    moves.append(Move((r, c), (r + 1, c + 1), self.board))
+                
 
 
     def getRookMoves(self, r, c, moves):
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
-        ownColor = self.board[r][c][0]
-        enemyColor = "b" if ownColor == "w" else "w"
+        enemyColor = "b" if self.whiteToMove else "w"
         for d in directions:
             for i in range(1, 8):
                 endRow = r + d[0] * i
@@ -148,19 +149,18 @@ class GameState():
 
     def getKnightMoves(self, r, c, moves):
         knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
-        ownColor = self.board[r][c][0]
+        allyColor = "w" if self.whiteToMove else "b"
         for m in knightMoves:
             endRow = r + m[0]
             endCol = c + m[1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
-                if endPiece[0] != ownColor:
+                if endPiece[0] != allyColor:
                     moves.append(Move((r, c), (endRow, endCol), self.board))
         
     def getBishopMoves(self, r, c, moves):
         directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
-        ownColor = self.board[r][c][0]
-        enemyColor = "b" if ownColor == "w" else "w"
+        enemyColor = "b" if self.whiteToMove else "w"
         for d in directions:
             for i in range(1, 8):
                 endRow = r + d[0] * i
@@ -183,13 +183,13 @@ class GameState():
 
     def getKingMoves(self, r, c, moves):
         kingMoves = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
-        ownColor = self.board[r][c][0]
+        allyColor = "w" if self.whiteToMove else "b"
         for i in range(8):
             endRow = r + kingMoves[i][0]
             endCol = c + kingMoves[i][1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
-                if endPiece[0] != ownColor:
+                if endPiece[0] != allyColor:
                     moves.append(Move((r, c), (endRow, endCol), self.board))
 
 class Move():
