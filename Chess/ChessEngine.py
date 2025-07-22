@@ -141,11 +141,6 @@ class GameState():
                     checks.append((endRow, endCol, m[0], m[1]))
         return inCheck, pins, checks
 
-<<<<<<< HEAD
-        
-=======
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
-
     def inCheck(self):
         if self.whiteToMove:
             return self.squareUnderAttack(self.whiteKingLocation[0], self.whiteKingLocation[1])
@@ -209,11 +204,7 @@ class GameState():
                 if self.board[r + 1][c + 1][0] == "w":
                     if not piecePinned or pinDirection == (1, 1):
                         moves.append(Move((r, c), (r + 1, c + 1), self.board))
-                
-<<<<<<< HEAD
-=======
-
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
+       
     def getRookMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -240,10 +231,6 @@ class GameState():
                             break
                 else:   
                     break
-<<<<<<< HEAD
-
-=======
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
 
     def getKnightMoves(self, r, c, moves):
         piecePinned = False
@@ -265,12 +252,6 @@ class GameState():
                     if endPiece[0] != allyColor:
                         moves.append(Move((r, c), (endRow, endCol), self.board))
 
-<<<<<<< HEAD
-        
-        
-=======
-       
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
     def getBishopMoves(self, r, c, moves):
         piecePinned = False
         pinDirection = ()
@@ -300,11 +281,6 @@ class GameState():
                     break
 
 
-<<<<<<< HEAD
-        
-
-=======
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
     def getQueenMoves(self, r, c, moves):
         self.getRookMoves(r, c, moves)
         self.getBishopMoves(r, c, moves)
@@ -350,11 +326,7 @@ class Move():
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
         self.isPawnPromotion = False
-<<<<<<< HEAD
-        if (self.pieceMoved == "wp" and self.endRow == 0) or (self.pieceMoved == "bp" and self.endRow == 7):    
-=======
         if (self.pieceMoved == "wp" and self.endRow == 0) or (self.pieceMoved == "bp" and self.endRow == 7):
->>>>>>> cac85c84b02c530f9bda84e493af9a6589519505
             self.isPawnPromotion = True
         self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
 
