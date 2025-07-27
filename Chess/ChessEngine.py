@@ -8,7 +8,8 @@ class GameState():
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
-            ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
+            ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]
+        ]
         self.moveFunctions = {"p": self.getPawnMoves, "R": self.getRookMoves, "N": self.getKnightMoves, 
         "B": self.getBishopMoves, "Q": self.getQueenMoves, "K": self.getKingMoves}
 
@@ -65,17 +66,23 @@ class GameState():
             self.enpassantPossible = ()
        
         #castle move
-        if move.isCastleMove:
+        if move.isCastleMove and move.pieceMoved[1] == "K":  # Only if it's a castle move AND a king is moving
             print(f"\nExecuting castle move:")
             print(f"Before castle - King at ({move.startRow}, {move.startCol}) moving to ({move.endRow}, {move.endCol})")
-            if move.endCol - move.startCol == 2: #kingside castle
+            # Kingside castle (king moves right by 2)
+            if move.endCol - move.startCol == 2:
                 print("Kingside castle - Moving rook from h1/h8 to f1/f8")
-                self.board[move.endRow][move.endCol - 1] = self.board[move.endRow][move.endCol + 1] #moves the rook to f1/f8
-                self.board[move.endRow][move.endCol + 1] = "--" #erase old rook from h1/h8
-            else: #queen side castle
+                rook = self.board[move.endRow][7]  # Get rook from h1/h8
+                if rook[1] == "R":  # Verify it's actually a rook
+                    self.board[move.endRow][5] = rook   # Place rook on f1/f8
+                    self.board[move.endRow][7] = "--"   # Clear original rook position
+            # Queenside castle (king moves left by 2)
+            elif move.endCol - move.startCol == -2:
                 print("Queenside castle - Moving rook from a1/a8 to d1/d8")
-                self.board[move.endRow][move.endCol + 1] = self.board[move.endRow][move.endCol - 2] #moves the rook to d1/d8
-                self.board[move.endRow][move.endCol - 2] = "--" #erase old rook from a1/a8
+                rook = self.board[move.endRow][0]  # Get rook from a1/a8
+                if rook[1] == "R":  # Verify it's actually a rook
+                    self.board[move.endRow][3] = rook   # Place rook on d1/d8
+                    self.board[move.endRow][0] = "--"   # Clear original rook position
             print("Board state after castle:")
             self._printBoard()
 
@@ -186,12 +193,11 @@ class GameState():
                 # Double check — only king moves are legal. Clear other moves first.
                 moves = []
                 self.getKingMoves(kingRow, kingCol, moves)
+        # Only generate standard king moves by default - castling will be considered separately
+        if self.whiteToMove:
+            self.getKingMoves(self.whiteKingLocation[0], self.whiteKingLocation[1], moves)
         else:
-            # King is not in check – we can now consider castling moves.
-            if self.whiteToMove:
-                self.getCastleMoves(self.whiteKingLocation[0], self.whiteKingLocation[1], moves)
-            else:
-                self.getCastleMoves(self.blackKingLocation[0], self.blackKingLocation[1], moves)
+            self.getKingMoves(self.blackKingLocation[0], self.blackKingLocation[1], moves)
 
         # ------------------------------------------------------------------
         # 3. Final legality filter – ensure no move leaves own king in check
@@ -208,6 +214,19 @@ class GameState():
             self.undoMove()
             if not isOwnKingInCheck:
                 legalMoves.append(move)
+                
+        # ------------------------------------------------------------------
+        # 3.5 Add castle moves if conditions are met
+        # ------------------------------------------------------------------
+        if not inCheckFlag:  # Can't castle while in check
+            if self.whiteToMove:
+                kingRow, kingCol = self.whiteKingLocation
+                if self.currentCastlingRight.wks or self.currentCastlingRight.wqs:
+                    self.getCastleMoves(kingRow, kingCol, legalMoves)
+            else:
+                kingRow, kingCol = self.blackKingLocation
+                if self.currentCastlingRight.bks or self.currentCastlingRight.bqs:
+                    self.getCastleMoves(kingRow, kingCol, legalMoves)
 
         # ------------------------------------------------------------------
         # 4. Determine checkmate or stalemate conditions (after legality filter)
@@ -449,12 +468,15 @@ class GameState():
         rowMoves = (-1, -1, -1, 0, 0, 1, 1, 1)
         colMoves = (-1, 0, 1, -1, 1, -1, 0, 1)
         allyColor = "w" if self.whiteToMove else "b"
+        
+        # Add regular king moves
         for i in range(8):
             endRow = r + rowMoves[i]
             endCol = c + colMoves[i]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
                 if endPiece[0] != allyColor:
+                    # Check if this square is safe (not attacked by enemy pieces)
                     if allyColor == "w":
                         self.whiteKingLocation = (endRow, endCol)
                     else:
@@ -485,22 +507,38 @@ class GameState():
         
 
     def getKingsideCastleMoves(self, r, c, moves):
+        """Get kingside castle moves if conditions are met and player is actively trying to castle"""
+        # For kingside, squares f1/g1 or f8/g8 must be empty, and rook must be present at h1/h8
         print(f"Kingside castle check - squares empty? {self.board[r][c + 1] == '--' and self.board[r][c + 2] == '--'}")
         if self.board[r][c + 1] == "--" and self.board[r][c + 2] == "--":
-            if not self.squareUnderAttack(r, c + 1) and not self.squareUnderAttack(r, c + 2):
-                print("Adding kingside castle move")
-                moves.append(Move((r, c), (r, c + 2), self.board, isCastleMove=True))
+            rook = "wR" if self.whiteToMove else "bR"
+            if self.board[r][7] == rook:  # Verify rook is present
+                # Only add castle move if king is trying to move two squares
+                if not self.squareUnderAttack(r, c + 1) and not self.squareUnderAttack(r, c + 2):
+                    # Only mark as castle move if king is moving exactly two squares
+                    print("Adding kingside castle move")
+                    moves.append(Move((r, c), (r, c + 2), self.board, isCastleMove=True))
+                else:
+                    print("Cannot castle kingside: Path through check")
             else:
-                print("Cannot castle kingside: Path through check")
+                print("Cannot castle kingside: Rook not present at h1/h8")
 
     def getQueensideCastleMoves(self, r, c, moves):
-        print(f"Queenside castle check - squares empty? {self.board[r][c-1] == '--' and self.board[r][c-2] == '--'}")
-        if self.board[r][c-1] == "--" and self.board[r][c-2] == "--":
-            if not self.squareUnderAttack(r, c - 1) and not self.squareUnderAttack(r, c - 2):
-                print("Adding queenside castle move")
-                moves.append(Move((r, c), (r, c - 2), self.board, isCastleMove=True))
+        """Get queenside castle moves if conditions are met and player is actively trying to castle"""
+        # For queenside, squares d1/c1/b1 or d8/c8/b8 must be empty, and rook must be present at a1/a8
+        print(f"Queenside castle check - squares empty? {self.board[r][c-1] == '--' and self.board[r][c-2] == '--' and self.board[r][c-3] == '--'}")
+        if self.board[r][c-1] == "--" and self.board[r][c-2] == "--" and self.board[r][c-3] == "--":
+            rook = "wR" if self.whiteToMove else "bR"
+            if self.board[r][0] == rook:  # Verify rook is present
+                # Only add castle move if king is trying to move two squares
+                if not self.squareUnderAttack(r, c - 1) and not self.squareUnderAttack(r, c - 2):
+                    # Only mark as castle move if king is moving exactly two squares
+                    print("Adding queenside castle move")
+                    moves.append(Move((r, c), (r, c - 2), self.board, isCastleMove=True))
+                else:
+                    print("Cannot castle queenside: Path through check")
             else:
-                print("Cannot castle queenside: Path through check")
+                print("Cannot castle queenside: Rook not present at a1/a8")
 
     # ------------------------------------------------------------------
     # Utility helpers
